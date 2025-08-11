@@ -1,0 +1,33 @@
+# Ignore test reports and temporary files
+test-report.html
+explainb_report.html
+*.log
+
+# Ignore any files containing actual credentials
+*credentials*
+*secrets*
+test_with_real_dsn.sh
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local

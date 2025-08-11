@@ -1,0 +1,51 @@
+name: 'ExplainB Database Report'
+description: 'Generate comparison reports between two Databend database connections'
+author: 'Datafuse Labs'
+branding:
+  icon: 'database'
+  color: 'blue'
+
+inputs:
+  bendsql-dsn1:
+    description: 'First Databend database DSN connection string'
+    required: true
+  bendsql-dsn2:
+    description: 'Second Databend database DSN connection string'
+    required: true
+  output-file:
+    description: 'Output HTML report filename'
+    required: false
+    default: 'report.html'
+  runbend:
+    description: 'Run only Databend comparison, skip Snowflake reference'
+    required: false
+    default: 'false'
+  verbose:
+    description: 'Enable verbose logging'
+    required: false
+    default: 'false'
+  query-timeout:
+    description: 'Query timeout in seconds'
+    required: false
+    default: '60'
+  runbend:
+    description: 'Run only Databend comparison, skip Snowflake reference (for explain mode)'
+    required: false
+    default: 'true'
+
+outputs:
+  report-path:
+    description: 'Path to the generated HTML report'
+  status:
+    description: 'Status of the report generation (success/failure)'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    INPUT_BENDSQL_DSN1: ${{ inputs.bendsql-dsn1 }}
+    INPUT_BENDSQL_DSN2: ${{ inputs.bendsql-dsn2 }}
+    INPUT_OUTPUT_FILE: ${{ inputs.output-file }}
+    INPUT_RUNBEND: ${{ inputs.runbend }}
+    INPUT_VERBOSE: ${{ inputs.verbose }}
+    INPUT_QUERY_TIMEOUT: ${{ inputs.query-timeout }}

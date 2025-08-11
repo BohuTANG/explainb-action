@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Databend Explain Plan Comparison Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+            text-align: center;
+        }
+        
+        .header .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        .connection-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .dsn-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .dsn-info h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .dsn-info code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .version-info {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .version-info .version-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .dsn-details {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .dsn-details .detail-item {
+            margin: 2px 0;
+        }
+        
+        .dsn-details .detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .summary-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-item.identical {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border: 2px solid #28a745;
+        }
+        
+        .stat-item.similar {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #ffc107;
+        }
+        
+        .stat-item.different {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            border: 2px solid #dc3545;
+        }
+        
+        .stat-item.error {
+            background: linear-gradient(135deg, #f4cccc, #ea9999);
+            border: 2px solid #cc0000;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .results-section {
+            margin-bottom: 20px;
+        }
+        
+        .query-result {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sql-container {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sql-container:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .query-result:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .query-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+        
+        .query-header:hover {
+            background: #f8f9fa;
+        }
+        
+        .query-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .query-number {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .query-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-identical {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-similar {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-different {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-error {
+            background: #f4cccc;
+            color: #cc0000;
+        }
+        
+        .similarity-score {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .query-sql {
+            flex-grow: 1;
+            margin: 0 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #495057;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        
+        .toggle-icon {
+            font-size: 1.2em;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+        
+        .query-details {
+            border-top: 1px solid #dee2e6;
+            padding: 0;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .full-sql {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .full-sql h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .full-sql pre {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .diff-section {
+            padding: 20px;
+        }
+        
+        .diff-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .diff-info {
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .diff-info.dsn1 {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .diff-info.dsn2 {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+        
+        .diff-info.snowflake {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .diff-container {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+        }
+        
+        .diff-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .diff-table-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .diff-table-header th {
+            padding: 8px 12px;
+            font-weight: bold;
+            text-align: center;
+            color: #495057;
+        }
+        
+        .diff-line-row {
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .diff-line-row:last-child {
+            border-bottom: none;
+        }
+        
+        .diff-line-num {
+            width: 60px;
+            padding: 2px 8px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            text-align: right;
+            color: #6c757d;
+            user-select: none;
+            vertical-align: top;
+        }
+        
+        .diff-line-content {
+            padding: 2px 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+        
+        .diff-line-row.equal .diff-line-content {
+            background: white;
+            color: #212529;
+        }
+        
+        .diff-line-row.delete .diff-line-num {
+            background: #ffeaea;
+            border-right-color: #fd8c73;
+        }
+        
+        .diff-line-row.delete .diff-line-content {
+            background: #ffecec;
+            color: #24292e;
+        }
+        
+        .diff-line-row.insert .diff-line-num {
+            background: #e6ffed;
+            border-right-color: #34d058;
+        }
+        
+        .diff-line-row.insert .diff-line-content {
+            background: #f0fff4;
+            color: #24292e;
+        }
+        
+        .diff-line-row.replace .diff-line-num {
+            background: #fff5b4;
+            border-right-color: #dbab09;
+        }
+        
+        .diff-line-row.replace .diff-line-content {
+            background: #fffdef;
+            color: #24292e;
+        }
+        
+        .diff-empty-line {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .diff-scroll-container {
+            max-height: 500px;
+            overflow: auto;
+        }
+        
+        .error-section {
+            padding: 20px;
+        }
+        
+        .error-panel {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #dc3545;
+            background: #f8d7da;
+        }
+        
+        .error-panel h4 {
+            color: #721c24;
+            margin-bottom: 10px;
+        }
+        
+        .error-panel pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #ffffff;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .connection-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-stats {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+            
+            .query-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .query-info {
+                flex-wrap: wrap;
+            }
+            
+            .diff-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .diff-header {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="report-title">🔍 Loading...</h1>
+            <div class="subtitle" id="generation-time">Loading...</div>
+            <div class="connection-info">
+                <div class="dsn-info">
+                    <h3>🗄️ DSN1</h3>
+                    <code id="dsn1">Loading...</code>
+                    <div class="dsn-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Warehouse:</span> <span id="dsn1-warehouse">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Database:</span> <span id="dsn1-database">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Version:</span> <span id="dsn1-version">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="dsn-info">
+                    <h3>🗄️ DSN2</h3>
+                    <code id="dsn2">Loading...</code>
+                    <div class="dsn-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Warehouse:</span> <span id="dsn2-warehouse">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Database:</span> <span id="dsn2-database">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Version:</span> <span id="dsn2-version">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 6px;">
+                <strong>❄️ Snowflake Reference:</strong> <span id="snowflake-version">Loading...</span>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <strong>SQL File:</strong> <code id="sql-file">Loading...</code>
+            </div>
+        </div>
+        
+        <div class="summary-section">
+            <div class="summary-stats" id="summary-stats">
+                <!-- Statistics will be generated dynamically -->
+            </div>
+        </div>
+        
+        <div class="results-section" id="query-results">
+            <!-- Query results will be generated dynamically -->
+        </div>
+        
+        <div class="footer">
+            <p>🤖 Generated with ExplainB - Databend Explain Plan Comparison Tool</p>
+        </div>
+    </div>
+    
+    <script>
+        // Report data will be injected here
+        const reportData = {report_data};
+        
+        // Render the report
+        function renderReport() {
+            // Update header information
+            document.getElementById('report-title').textContent = `🔍 ${reportData.meta.title}`;
+            document.getElementById('generation-time').textContent = `Generated on ${reportData.meta.generation_time}`;
+            document.getElementById('dsn1').textContent = reportData.meta.dsn1;
+            document.getElementById('dsn2').textContent = reportData.meta.dsn2;
+            
+            // Update DSN details
+            document.getElementById('dsn1-warehouse').textContent = reportData.meta.dsn1_warehouse || 'N/A';
+            document.getElementById('dsn1-database').textContent = reportData.meta.dsn1_database || 'N/A';
+            document.getElementById('dsn1-version').textContent = reportData.meta.dsn1_version || 'N/A';
+            document.getElementById('dsn2-warehouse').textContent = reportData.meta.dsn2_warehouse || 'N/A';
+            document.getElementById('dsn2-database').textContent = reportData.meta.dsn2_database || 'N/A';
+            document.getElementById('dsn2-version').textContent = reportData.meta.dsn2_version || 'N/A';
+            
+            const snowflakeVersionEl = document.getElementById('snowflake-version');
+            if (reportData.meta.snowflake_version) {
+                snowflakeVersionEl.textContent = reportData.meta.snowflake_version;
+            } else {
+                snowflakeVersionEl.parentElement.style.display = 'none';
+            }
+            
+            document.getElementById('sql-file').textContent = reportData.meta.sql_file;
+            
+            // Render statistics
+            renderStatistics();
+            
+            // Render query results
+            renderQueryResults();
+        }
+        
+        function renderStatistics() {
+            const stats = reportData.statistics;
+            const summaryContainer = document.getElementById('summary-stats');
+            
+            const statsHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${stats.total_queries}</div>
+                    <div class="stat-label">Total Queries</div>
+                </div>
+                <div class="stat-item identical">
+                    <div class="stat-value">${stats.identical_count}</div>
+                    <div class="stat-label">Identical</div>
+                </div>
+                <div class="stat-item similar">
+                    <div class="stat-value">${stats.similar_count}</div>
+                    <div class="stat-label">Similar</div>
+                </div>
+                <div class="stat-item different">
+                    <div class="stat-value">${stats.different_count}</div>
+                    <div class="stat-label">Different</div>
+                </div>
+                <div class="stat-item error">
+                    <div class="stat-value">${stats.error_count}</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${(stats.avg_similarity * 100).toFixed(1)}%</div>
+                    <div class="stat-label">Avg Similarity</div>
+                </div>
+            `;
+            
+            summaryContainer.innerHTML = statsHTML;
+        }
+        
+        function renderQueryResults() {
+            const container = document.getElementById('query-results');
+            let html = '';
+            
+            reportData.query_results.forEach((query, index) => {
+                const statusClass = query.status.toLowerCase();
+                html += `
+                    <div class="sql-container" id="sql${query.query_index}">
+                        <div class="query-header" onclick="toggleQuery(${index + 1})">
+                            <div class="query-info">
+                                <span class="query-number">Query ${String(query.query_index).padStart(2, '0')}</span>
+                                <span class="query-status status-${statusClass}">${query.status}</span>
+                                <span class="similarity-score">${(query.similarity_score * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="query-sql">${escapeHtml(query.short_sql)}</div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="query-details" id="query-${index + 1}">
+                            <div class="full-sql">
+                                <h4>SQL Query:</h4>
+                                <pre>${escapeHtml(query.sql_query)}</pre>
+                            </div>
+                            ${renderComparisonSection(query)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Auto-expand error queries
+            reportData.query_results.forEach((query, index) => {
+                if (query.status === 'ERROR') {
+                    const details = document.getElementById(`query-${index + 1}`);
+                    if (details) {
+                        details.style.display = 'block';
+                        const icon = details.previousElementSibling.querySelector('.toggle-icon');
+                        if (icon) icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            });
+        }
+        
+        function renderComparisonSection(query) {
+            const diffData = query.diff_data;
+            
+            if (!query.dsn1_result.success || !query.dsn2_result.success) {
+                return renderErrorSection(query);
+            }
+            
+            let html = '<div class="diff-section">';
+            
+            // Diff header with optional Snowflake
+            const hasSnowflake = query.snowflake_result && (query.snowflake_result.success || query.snowflake_result.error_message);
+            const gridCols = hasSnowflake ? 'grid-template-columns: 1fr 1fr 1fr;' : 'grid-template-columns: 1fr 1fr;';
+            
+            html += `
+                <div class="diff-header" style="${gridCols}">
+                    <div class="diff-info dsn1">
+                        <strong>${diffData.dsn1_info.name}</strong> (${diffData.dsn1_info.execution_time.toFixed(3)}s)
+                    </div>
+                    <div class="diff-info dsn2">
+                        <strong>${diffData.dsn2_info.name}</strong> (${diffData.dsn2_info.execution_time.toFixed(3)}s)
+                    </div>
+                    ${hasSnowflake ? `
+                    <div class="diff-info snowflake">
+                        <strong>❄️ Snowflake</strong> (${query.snowflake_result.execution_time.toFixed(3)}s)
+                        ${query.snowflake_result.success ? '<span style="color: #4caf50;">✓</span>' : '<span style="color: #f44336;">✗</span>'}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // GitHub-style diff table
+            html += `
+                <div class="diff-container">
+                    <div class="diff-scroll-container">
+                        <table class="diff-table">
+                            <thead class="diff-table-header">
+                                <tr>
+                                    <th style="width: 60px;">DSN1</th>
+                                    <th style="width: 50%;">Plan (DSN1)</th>
+                                    <th style="width: 60px;">DSN2</th>
+                                    <th style="width: 50%;">Plan (DSN2)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            // Render diff lines with line numbers
+            diffData.diff_lines.forEach(line => {
+                const dsn1LineNum = line.dsn1_line_num || '';
+                const dsn2LineNum = line.dsn2_line_num || '';
+                const dsn1Content = line.dsn1_content || '';
+                const dsn2Content = line.dsn2_content || '';
+                
+                html += `
+                    <tr class="diff-line-row ${line.type}">
+                        <td class="diff-line-num">${dsn1LineNum}</td>
+                        <td class="diff-line-content">${dsn1Content ? escapeHtml(dsn1Content) : '<span class="diff-empty-line">No line</span>'}</td>
+                        <td class="diff-line-num">${dsn2LineNum}</td>
+                        <td class="diff-line-content">${dsn2Content ? escapeHtml(dsn2Content) : '<span class="diff-empty-line">No line</span>'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Add Snowflake explain plan section (only if Snowflake was executed)
+            if (hasSnowflake) {
+                if (query.snowflake_result.success) {
+                    // Format the raw output with proper line breaks
+                    const formattedPlan = escapeHtml(query.snowflake_result.explain_plan)
+                        .replace(/\\n/g, '\n')
+                        .replace(/\n/g, '<br>');
+                    
+                    html += `
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                            <h4 style="color: #4caf50; margin-bottom: 10px;">❄️ Snowflake Explain Plan (Reference)</h4>
+                            <div style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6; border-left: 4px solid #4caf50;">
+                                <div style="font-family: 'Courier New', monospace; font-size: 0.85em; line-height: 1.5; color: #2c3e50; white-space: pre-wrap;">${formattedPlan}</div>
+                            </div>
+                        </div>
+                    `;
+                } else if (query.snowflake_result.error_message) {
+                    html += `
+                        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                            <h4 style="color: #856404; margin-bottom: 10px;">❄️ Snowflake Explain (Reference - Failed)</h4>
+                            <pre style="color: #856404; font-size: 0.9em; margin: 0;">${escapeHtml(query.snowflake_result.error_message)}</pre>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function renderErrorSection(query) {
+            let html = '<div class="error-section">';
+            
+            if (!query.dsn1_result.success) {
+                html += `
+                    <div class="error-panel">
+                        <h4>DSN1 Error:</h4>
+                        <pre>${escapeHtml(query.dsn1_result.error_message)}</pre>
+                    </div>
+                `;
+            }
+            
+            if (!query.dsn2_result.success) {
+                html += `
+                    <div class="error-panel">
+                        <h4>DSN2 Error:</h4>
+                        <pre>${escapeHtml(query.dsn2_result.error_message)}</pre>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function toggleQuery(queryNum) {
+            const details = document.getElementById(`query-${queryNum}`);
+            const icon = details.previousElementSibling.querySelector('.toggle-icon');
+            
+            if (details.style.display === 'none' || details.style.display === '') {
+                details.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                details.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize the report when page loads
+        document.addEventListener('DOMContentLoaded', renderReport);
+    </script>
+</body>
+</html>

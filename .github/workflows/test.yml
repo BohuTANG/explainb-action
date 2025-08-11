@@ -1,0 +1,49 @@
+name: Test ExplainB Action
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test ExplainB Action
+        uses: ./
+        with:
+          bendsql-dsn1: ${{ secrets.TEST_DATABEND_DSN1 }}
+          bendsql-dsn2: ${{ secrets.TEST_DATABEND_DSN2 }}
+          runbend: 'true'
+          verbose: 'true'
+          output-file: 'explainb-test-report.html'
+          query-timeout: '120'
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: explainb-test-report
+          path: explainb-test-report.html
+          retention-days: 7
+
+      - name: Check Report Size
+        run: |
+          if [ -f "explainb-test-report.html" ]; then
+            SIZE=$(wc -c < explainb-test-report.html)
+            echo "Report size: $SIZE bytes"
+            if [ $SIZE -gt 1000 ]; then
+              echo "✅ Report generated successfully with reasonable size"
+            else
+              echo "⚠️  Report seems too small, might be incomplete"
+              exit 1
+            fi
+          else
+            echo "❌ Report file not found"
+            exit 1
+          fi
