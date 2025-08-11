@@ -1,7 +1,7 @@
 # ExplainB Action
 
 [![Release](https://img.shields.io/github/v/release/BohuTANG/explainb-action)](https://github.com/BohuTANG/explainb-action/releases)
-[![Test](https://github.com/BohuTANG/explainb-action/workflows/Test/badge.svg)](https://github.com/BohuTANG/explainb-action/actions)
+
 
 GitHub Action for Databend SQL explain plan analysis using TPC-DS benchmark queries.
 
@@ -24,7 +24,6 @@ GitHub Action for Databend SQL explain plan analysis using TPC-DS benchmark quer
 | `runbend` | Skip Snowflake comparison | ❌ | `false` |
 | `verbose` | Enable verbose logging | ❌ | `false` |
 | `output-file` | Report filename | ❌ | `report.html` |
-| `query-timeout` | Timeout in seconds | ❌ | `60` |
 
 ## DSN Format
 
@@ -72,4 +71,4 @@ Generates `report.html` with TPC-DS query explain plan comparisons.
 
 ---
 
-Made by [Datafuse Labs](https://datafuselabs.com)
+Made by [Databend Labs](https://databend.com)
