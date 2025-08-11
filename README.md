@@ -1,12 +1,15 @@
 # ExplainB Action
 
+[![Release](https://img.shields.io/github/v/release/BohuTANG/explainb-action)](https://github.com/BohuTANG/explainb-action/releases)
+[![Test](https://github.com/BohuTANG/explainb-action/workflows/Test/badge.svg)](https://github.com/BohuTANG/explainb-action/actions)
+
 GitHub Action for Databend SQL explain plan analysis using TPC-DS benchmark queries.
 
 ## Usage
 
 ```yaml
 - name: Run ExplainB Analysis  
-  uses: datafuselabs/explainb-action@v1
+  uses: BohuTANG/explainb-action@v0.1.0
   with:
     bendsql-dsn1: ${{ secrets.DATABEND_DSN_OLD }}
     bendsql-dsn2: ${{ secrets.DATABEND_DSN_NEW }}
@@ -42,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run ExplainB Analysis
-        uses: datafuselabs/explainb-action@v1
+        uses: BohuTANG/explainb-action@v0.1.0
         with:
           bendsql-dsn1: ${{ secrets.DATABEND_DSN_OLD }}
           bendsql-dsn2: ${{ secrets.DATABEND_DSN_NEW }}
