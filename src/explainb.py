@@ -744,30 +744,31 @@ class ExplainB:
     
     @staticmethod
     def parse_dsn_info(dsn: str) -> Dict[str, str]:
-        """Parse DSN to extract warehouse and database information"""
+        """Parse DSN to extract warehouse and database information
+        
+        DSN format: databend://user:pass@host:port/database?warehouse=warehouse_name
+        """
         if not dsn:
             return {"warehouse": "Unknown", "database": "Unknown"}
         
-        import re
-        # Pattern: databend://user:pass@host--warehouse.domain/database
-        pattern = r'databend://[^@]+@([^/]+)/(.+)'
-        match = re.match(pattern, dsn)
+        from urllib.parse import urlparse, parse_qs
         
-        if match:
-            host_part = match.group(1)  # e.g., tnscfp003--version-test.gw.aws-us-east-2.default.databend.com
-            database = match.group(2)   # e.g., tpcds_100
+        try:
+            parsed = urlparse(dsn)
             
-            # Extract warehouse from host (format: prefix--warehouse.domain)
-            warehouse_pattern = r'[^-]+--([^.]+)'
-            warehouse_match = re.search(warehouse_pattern, host_part)
-            warehouse = warehouse_match.group(1) if warehouse_match else "Unknown"
+            # Extract database from path: /database -> database
+            database = parsed.path.lstrip('/') or "Unknown"
             
-            return {
-                "warehouse": warehouse,
-                "database": database
-            }
-        
-        return {"warehouse": "Unknown", "database": "Unknown"}
+            # Extract warehouse from query parameters: ?warehouse=value
+            warehouse = "Unknown"
+            if parsed.query:
+                query_params = parse_qs(parsed.query)
+                warehouse = query_params.get('warehouse', ['Unknown'])[0]
+            
+            return {"warehouse": warehouse, "database": database}
+            
+        except Exception:
+            return {"warehouse": "Unknown", "database": "Unknown"}
         
     def run(self, args):
         """Run the explain plan comparison"""
