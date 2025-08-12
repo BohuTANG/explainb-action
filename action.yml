@@ -19,7 +19,7 @@ inputs:
   runbend:
     description: 'Run only Databend comparison, skip Snowflake reference'
     required: false
-    default: 'false'
+    default: 'true'
   verbose:
     description: 'Enable verbose logging'
     required: false
@@ -28,10 +28,6 @@ inputs:
     description: 'Query timeout in seconds'
     required: false
     default: '60'
-  runbend:
-    description: 'Run only Databend comparison, skip Snowflake reference (for explain mode)'
-    required: false
-    default: 'true'
 
 outputs:
   report-path:
